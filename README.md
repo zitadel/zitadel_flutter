@@ -24,7 +24,7 @@ install command is
 if cd flutter; then git pull && cd .. ; else git clone https://github.com/flutter/flutter.git; fi && ls && flutter/bin/flutter doctor && flutter/bin/flutter clean && flutter/bin/flutter config --enable-web
 ```
 
-then ensure `webCallbackUrlScheme` in `main.dart` is set to your deployed site on vercel and add your redirect uri in ZITADEL console. It should look like this `https://your-site.com/auth.html`.
+then ensure `webCallbackUrlScheme` in `main.dart` is set to your deployed site and add your redirect uri in ZITADEL console. It should look like this `https://your-site.com/auth.html`.
 
 ## Getting Started
 
@@ -43,6 +43,8 @@ samples, guidance on mobile development, and a full API reference.
 
 Make sure to create a native application. Add the redirects for mobile applications with your custom scheme (in our case `com.zitadel.zitadelflutter`) and your web redirect (in our case for local development `http://localhost:4444/auth.html`) and make sure to have enabled devMode.
 To get a refresh_token, check the checkbox for Refresh Token and add the `offline_access` scope.
+
+Copy your instance url and your clientId and set it in `lib/main.dart`.
 
 ## Run
 
