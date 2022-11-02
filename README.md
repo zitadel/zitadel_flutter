@@ -25,19 +25,24 @@ Make sure to create a native application. Add the redirects for mobile applicati
 
 ## Run
 
-### Web
+### Android
 
-To run this example in your browser, make sure to run it on port 4444.
+Navigate to your `AndroidManifest.xml` and add the following activity with your scheme.
 
-```bash
-flutter run -d chrome --web-port=4444
+```xml
+<activity
+    android:name="com.linusu.flutter_web_auth_2.CallbackActivity"
+    android:exported="true">
+    <intent-filter android:label="flutter_web_auth_2">
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="[callback-url-scheme]" /> <!-- ex: com.example.zitadelflutter -->
+    </intent-filter>
+</activity>
 ```
 
-if your using, an other browser than chrome select your own. You can get all connected devices with
-
-```bash
-flutter devices
-```
+then connect your device or run a simulator and run your application.
 
 ### iOS
 
@@ -45,4 +50,12 @@ Make sure to connect your iPhone or run the simulator, then type
 
 ```bash
 flutter run -d iphone
+```
+
+### Web
+
+To run this example in your browser, make sure to run it on port 4444.
+
+```bash
+flutter run -d chrome --web-port=4444
 ```
