@@ -6,6 +6,26 @@ A new Flutter project.
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fzitadel%2Fzitadel_flutter)
 
+To deploy your page with vercel, set your build command to
+
+```bash
+flutter build web
+```
+
+output directory is
+
+```bash
+build/web
+```
+
+install command is
+
+```bash
+if cd flutter; then git pull && cd .. ; else git clone https://github.com/flutter/flutter.git; fi && ls && flutter/bin/flutter doctor && flutter/bin/flutter clean && flutter/bin/flutter config --enable-web
+```
+
+then ensure `webCallbackUrlScheme` in `main.dart` is set to your deployed site on vercel and add your redirect uri in ZITADEL console. It should look like this `https://your-site.com/auth.html`.
+
 ## Getting Started
 
 This project is a starting point for a Flutter application with ZITADEL integration.

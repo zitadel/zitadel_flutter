@@ -67,7 +67,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     String zitadelIssuer = '[your-zitadel-issuer]';
     String zitadelClientId = '[your-client-id]';
-    String webCallbackUrlScheme = 'localhost';
+    String webCallbackUrlScheme = 'http://localhost:4444';
     String callbackUrlScheme = 'com.example.zitadelflutter';
 
     final pkcePair = PkcePair.generate();
@@ -75,9 +75,8 @@ class _MyHomePageState extends State<MyHomePage> {
     final url = Uri.https(zitadelIssuer, '/oauth/v2/authorize', {
       'response_type': 'code',
       'client_id': zitadelClientId,
-      'redirect_uri': kIsWeb
-          ? 'http://$webCallbackUrlScheme:4444/auth.html'
-          : '$callbackUrlScheme:/',
+      'redirect_uri':
+          kIsWeb ? '$webCallbackUrlScheme/auth.html' : '$callbackUrlScheme:/',
       'scope': 'openid profile email offline_access',
       'code_challenge': pkcePair.codeChallenge,
       'code_challenge_method': 'S256',
@@ -95,9 +94,8 @@ class _MyHomePageState extends State<MyHomePage> {
         await http.post(Uri.https(zitadelIssuer, '/oauth/v2/token'), body: {
       'client_id': zitadelClientId,
       // 'client_secret': zitadelClientSecret,
-      'redirect_uri': kIsWeb
-          ? 'http://$webCallbackUrlScheme:4444/auth.html'
-          : '$callbackUrlScheme:/',
+      'redirect_uri':
+          kIsWeb ? '$webCallbackUrlScheme/auth.html' : '$callbackUrlScheme:/',
       'grant_type': 'authorization_code',
       'code': code,
       'code_verifier': pkcePair.codeVerifier,
