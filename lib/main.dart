@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:http/http.dart' as http;
 import 'package:pkce/pkce.dart';
@@ -57,6 +58,7 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _busy = false;
   bool _authenticated = false;
   String _username = '';
+  final storage = new FlutterSecureStorage();
 
   Future<void> _authenticate() async {
     setState(() {
@@ -76,7 +78,7 @@ class _MyHomePageState extends State<MyHomePage> {
       'redirect_uri': kIsWeb
           ? 'http://$webCallbackUrlScheme:4444/auth.html'
           : '$callbackUrlScheme:/',
-      'scope': 'openid profile email',
+      'scope': 'openid profile email offline_access',
       'code_challenge': pkcePair.codeChallenge,
       'code_challenge_method': 'S256',
     });
@@ -100,9 +102,14 @@ class _MyHomePageState extends State<MyHomePage> {
       'code': code,
       'code_verifier': pkcePair.codeVerifier,
     });
-
     // Get the access token from the response
     final accessToken = jsonDecode(response.body)['access_token'] as String;
+
+    // Get the refresh token from the response
+    final refreshToken = jsonDecode(response.body)['refresh_token'] as String;
+
+    // Get the id token from the response
+    final idToken = jsonDecode(response.body)['id_token'] as String;
 
     Map<String, String> headers = {
       "Content-Type": "application/json",
@@ -116,6 +123,10 @@ class _MyHomePageState extends State<MyHomePage> {
     );
 
     final userJson = jsonDecode(utf8.decode(userInfoResponse.bodyBytes));
+
+    await storage.write(key: 'access_token', value: accessToken);
+    await storage.write(key: 'refresh_token', value: refreshToken);
+    await storage.write(key: 'id_token', value: idToken);
 
     setState(() {
       _busy = false;

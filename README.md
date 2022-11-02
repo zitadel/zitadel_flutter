@@ -22,6 +22,7 @@ samples, guidance on mobile development, and a full API reference.
 ## ZITADEL configuration
 
 Make sure to create a native application. Add the redirects for mobile applications with your custom scheme (in our case `com.zitadel.zitadelflutter`) and your web redirect (in our case for local development `http://localhost:4444/auth.html`) and make sure to have enabled devMode.
+To get a refresh_token, check the checkbox for Refresh Token and add the `offline_access` scope.
 
 ## Run
 
