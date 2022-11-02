@@ -1,6 +1,6 @@
 # zitadel_flutter
 
-A new Flutter project.
+This project is a starting point for a Flutter application with ZITADEL integration.
 
 ## Deploy your own
 
