@@ -67,8 +67,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
     String zitadelIssuer = '[your-zitadel-issuer]';
     String zitadelClientId = '[your-client-id]';
-    String webCallbackUrlScheme = 'http://localhost:4444';
-    String callbackUrlScheme = 'com.example.zitadelflutter';
+    String webCallbackUrlScheme =
+        'http://localhost:4444'; // for local testing or the domain your app will be deployed later
+    String callbackUrlScheme = '[callback-url-scheme]';
 
     final pkcePair = PkcePair.generate();
     // Construct the url
