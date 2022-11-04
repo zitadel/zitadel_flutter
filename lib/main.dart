@@ -76,7 +76,6 @@ class _MyHomePageState extends State<MyHomePage> {
     final response =
         await http.post(Uri.https(zitadelIssuer, '/oauth/v2/token'), body: {
       'client_id': zitadelClientId,
-      // 'client_secret': zitadelClientSecret,
       'redirect_uri':
           kIsWeb ? '$webCallbackUrlScheme/auth.html' : '$callbackUrlScheme:/',
       'grant_type': 'authorization_code',
