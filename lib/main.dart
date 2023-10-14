@@ -155,41 +155,45 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (_busy)
-              const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text("Busy, logging in."),
+            if (latestError != null)
+              ErrorWidget(latestError!)
+            else ...[
+              if (_busy)
+                const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text("Busy, logging in."),
+                    Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  ],
+                )
+              else ...[
+                if (_authenticated) ...[
+                  Text(
+                    'Hello $_username!',
+                  ),
                   Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: CircularProgressIndicator(),
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    child: ElevatedButton(
+                      onPressed: _logout,
+                      child: const Text('Logout'),
+                    ),
+                  ),
+                ] else ...[
+                  const Text(
+                    'You are not authenticated.',
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.fingerprint),
+                      label: const Text('Login'),
+                      onPressed: _authenticate,
+                    ),
                   ),
                 ],
-              )
-            else ...[
-              if (_authenticated) ...[
-                Text(
-                  'Hello $_username!',
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: ElevatedButton(
-                    onPressed: _logout,
-                    child: const Text('Logout'),
-                  ),
-                ),
-              ] else ...[
-                const Text(
-                  'You are not authenticated.',
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.fingerprint),
-                    label: const Text('Login'),
-                    onPressed: _authenticate,
-                  ),
-                ),
               ],
             ],
           ],
