@@ -37,6 +37,7 @@ final userManager = OidcUserManager.lazy(
 late Future<void> initFuture;
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   initFuture = userManager.init();
   runApp(const MyApp());
 }
