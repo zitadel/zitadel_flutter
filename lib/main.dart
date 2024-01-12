@@ -1,13 +1,44 @@
-import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
-import 'package:http/http.dart' as http;
-import 'package:pkce/pkce.dart';
+import 'package:oidc/oidc.dart';
+import 'package:oidc_default_store/oidc_default_store.dart';
+
+/// Zitadel url + client id.
+/// you can replace String.fromEnvironment(*) calls with the actual values
+/// if you don't want to pass them dynamically.
+final zitadelIssuer = Uri.parse(const String.fromEnvironment('zitadel_url'));
+const zitadelClientId = String.fromEnvironment('zitadel_client_id');
+
+/// This should be the app's bundle id.
+const callbackUrlScheme = 'com.zitadel.zitadelflutter';
+
+/// This will be the current url of the page + /auth.html added to it.
+final baseUri = Uri.base;
+final webCallbackUrl = Uri.base.replace(path: 'auth.html');
+
+/// for web platforms, we use http://website-url.com/auth.html
+///
+/// for mobile platforms, we use `com.zitadel.zitadelflutter:/`
+final redirectUri =
+    kIsWeb ? webCallbackUrl : Uri(scheme: callbackUrlScheme, path: '/');
+
+final userManager = OidcUserManager.lazy(
+  discoveryDocumentUri: OidcUtils.getOpenIdConfigWellKnownUri(zitadelIssuer),
+  clientCredentials:
+      const OidcClientAuthentication.none(clientId: zitadelClientId),
+  store: OidcDefaultStore(),
+  settings: OidcUserManagerSettings(
+    redirectUri: redirectUri,
+    // the same redirectUri can be used as for post logout too.
+    postLogoutRedirectUri: redirectUri,
+    scope: ['openid', 'profile', 'email', 'offline_access'],
+  ),
+);
+late Future<void> initFuture;
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  initFuture = userManager.init();
   runApp(const MyApp());
 }
 
@@ -22,6 +53,26 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
+      builder: (context, child) {
+        // Show a loading widget while the app is initializing.
+        // This can be used to show a splash screen for example.
+        return FutureBuilder(
+          future: initFuture,
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return ErrorWidget(snapshot.error.toString());
+            }
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const Material(
+                child: Center(
+                  child: CircularProgressIndicator.adaptive(),
+                ),
+              );
+            }
+            return child!;
+          },
+        );
+      },
       home: const MyHomePage(title: 'Flutter ZITADEL Quickstart'),
     );
   }
@@ -38,80 +89,60 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   bool _busy = false;
-  bool _authenticated = false;
-  String _username = '';
-  final storage = new FlutterSecureStorage();
+  Object? latestError;
+
+  /// Test if there is a logged in user.
+  bool get _authenticated => _currentUser != null;
+
+  /// To get the access token.
+  String? get accessToken => _currentUser?.token.accessToken;
+
+  /// To get the id token.
+  String? get idToken => _currentUser?.idToken;
+
+  /// To access the claims.
+  String? get _username {
+    final currentUser = _currentUser;
+    if (currentUser == null) {
+      return null;
+    }
+    final claims = currentUser.aggregatedClaims;
+    return '${claims['given_name']} ${claims['family_name']}';
+  }
+
+  OidcUser? get _currentUser => userManager.currentUser;
 
   Future<void> _authenticate() async {
     setState(() {
+      latestError = null;
       _busy = true;
     });
-
-    String zitadelIssuer = '[your-zitadel-issuer]';
-    String zitadelClientId = '[your-client-id]';
-    String webCallbackUrlScheme =
-        'http://localhost:4444'; // for local testing or the domain your app will be deployed later
-    String callbackUrlScheme = '[callback-url-scheme]';
-
-    final pkcePair = PkcePair.generate();
-    // Construct the url
-    final url = Uri.https(zitadelIssuer, '/oauth/v2/authorize', {
-      'response_type': 'code',
-      'client_id': zitadelClientId,
-      'redirect_uri':
-          kIsWeb ? '$webCallbackUrlScheme/auth.html' : '$callbackUrlScheme:/',
-      'scope': 'openid profile email offline_access',
-      'code_challenge': pkcePair.codeChallenge,
-      'code_challenge_method': 'S256',
-    });
-
-    // Present the dialog to the user
-    final result = await FlutterWebAuth2.authenticate(
-        url: url.toString(), callbackUrlScheme: callbackUrlScheme);
-
-    // Extract code from resulting url
-    final code = Uri.parse(result).queryParameters['code'];
-
-    // Use this code to get an access token
-    final response =
-        await http.post(Uri.https(zitadelIssuer, '/oauth/v2/token'), body: {
-      'client_id': zitadelClientId,
-      'redirect_uri':
-          kIsWeb ? '$webCallbackUrlScheme/auth.html' : '$callbackUrlScheme:/',
-      'grant_type': 'authorization_code',
-      'code': code,
-      'code_verifier': pkcePair.codeVerifier,
-    });
-    // Get the access token from the response
-    final accessToken = jsonDecode(response.body)['access_token'] as String;
-
-    // Get the refresh token from the response
-    final refreshToken = jsonDecode(response.body)['refresh_token'] as String;
-
-    // Get the id token from the response
-    final idToken = jsonDecode(response.body)['id_token'] as String;
-
-    Map<String, String> headers = {
-      "Content-Type": "application/json",
-      "Accept": 'application/json; charset=UTF-8',
-      "Authorization": 'Bearer $accessToken',
-    };
-
-    final userInfoResponse = await http.get(
-      Uri.https(zitadelIssuer, '/oidc/v1/userinfo'),
-      headers: headers,
-    );
-
-    final userJson = jsonDecode(utf8.decode(userInfoResponse.bodyBytes));
-
-    await storage.write(key: 'access_token', value: accessToken);
-    await storage.write(key: 'refresh_token', value: refreshToken);
-    await storage.write(key: 'id_token', value: idToken);
-
+    try {
+      final user = await userManager.loginAuthorizationCodeFlow();
+      if (user == null) {
+        //it wasn't possible to login the user.
+        return;
+      }
+    } catch (e) {
+      latestError = e;
+    }
     setState(() {
       _busy = false;
-      _authenticated = true;
-      _username = '${userJson['given_name']} ${userJson['family_name']}';
+    });
+  }
+
+  Future<void> _logout() async {
+    setState(() {
+      latestError = null;
+      _busy = true;
+    });
+    try {
+      await userManager.logout();
+    } catch (e) {
+      latestError = e;
+    }
+    setState(() {
+      _busy = false;
     });
   }
 
@@ -125,32 +156,47 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (!_authenticated && !_busy)
-              Text(
-                'You are not authenticated.',
-              ),
-            if (!_authenticated && !_busy)
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: 16.0),
-                child: ElevatedButton.icon(
-                    icon: Icon(Icons.fingerprint),
-                    label: Text('login'),
-                    onPressed: _authenticate),
-              ),
-            if (_busy)
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text("Busy, logging in."),
-                  Padding(
+            if (latestError != null)
+              ErrorWidget(latestError!)
+            else ...[
+              if (_busy)
+                const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text("Busy, logging in."),
+                    Padding(
                       padding: EdgeInsets.all(16.0),
-                      child: CircularProgressIndicator())
+                      child: CircularProgressIndicator(),
+                    ),
+                  ],
+                )
+              else ...[
+                if (_authenticated) ...[
+                  Text(
+                    'Hello $_username!',
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    child: ElevatedButton(
+                      onPressed: _logout,
+                      child: const Text('Logout'),
+                    ),
+                  ),
+                ] else ...[
+                  const Text(
+                    'You are not authenticated.',
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.fingerprint),
+                      label: const Text('Login'),
+                      onPressed: _authenticate,
+                    ),
+                  ),
                 ],
-              ),
-            if (_authenticated && !_busy)
-              Text(
-                'Hello $_username!',
-              ),
+              ],
+            ],
           ],
         ),
       ),
